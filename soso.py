@@ -36,9 +36,9 @@ def blocker_mover(server_json):
     for i in range(len(server_json["state"]["board"])):
         for j in range(len(server_json["state"]["board"][i])):
             if server_json["state"]["board"][i][j] == 3:
-                if j%2 == 0:
+                if j%2 == 0 and j>1:
                     possible_blocker_positions.append( [[i,j],[i,j-2]])
-                else:
+                elif j%2 == 1 and i>1:
                     possible_blocker_positions.append( [[i,j],[i-2,j]])
                  
     return {
