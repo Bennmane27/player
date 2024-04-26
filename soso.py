@@ -11,19 +11,41 @@ def send_json_data(json_data, server_address):
         response = s.recv(20480)
         print("Réponse du serveur:", response.decode())
 
+# Variable globale pour garder une trace de la direction du joueur
+always_move_down = False
+
 def player_mover(server_json):
+    global always_move_down
     board = server_json["state"]["board"]
     position = get_position(server_json)
     move_available = callfunction(board, position)
-    randommove = get_random_true_index(move_available)
-    if randommove == 0:
-        return right_move(position)
-    elif randommove == 1:
-        return left_move(position)
-    elif randommove == 2:
-        return up_move(position)
-    elif randommove == 3:
+
+    # Si c'est le premier mouvement et que le mouvement vers le haut n'est pas disponible
+    if not always_move_down and not move_available[2]:
+        always_move_down = True
+
+    # Si le joueur doit toujours se déplacer vers le bas ou si le mouvement vers le haut n'est pas disponible
+    if always_move_down or not move_available[2]:
         return down_move(position)
+    else:
+        return up_move(position)
+
+#block any position
+def blocker_mover(server_json):
+    possible_blocker_positions = []
+    for i in range(len(server_json["state"]["board"])):
+        for j in range(len(server_json["state"]["board"][i])):
+            if server_json["state"]["board"][i][j] == 3:
+                if j%2 == 0:
+                    possible_blocker_positions.append( [[i,j],[i,j-2]])
+                else:
+                    possible_blocker_positions.append( [[i,j],[i-2,j]])
+                 
+    return {
+        "type": "blocker",
+        "position": random.choice(possible_blocker_positions)
+    }
+
 
 
 def right_move(position):
@@ -120,51 +142,34 @@ def handle_ping_pong():
         s.bind(('', 9000))
         s.listen()
         while True:
-            player, address = s.accept()
-            with player:
-                server_request = player.recv(20480).decode()
-                server_json = json.loads(server_request)
-                print("Requête du serveur:", server_json)
-                if server_json["request"] == "ping":
-                    response_pong = {"response": "pong"}
-                    response_pong_json = json.dumps(response_pong)
-                    player.sendall(response_pong_json.encode())
-                    print("Pong envoyé au serveur en réponse à la requête de ping.")
-                elif server_json["request"] == "play":
-                    lives = server_json["lives"]
-                    state = server_json["state"]
-                    errors = server_json["errors"]
-                    player_move = player_mover(server_json)
-                    response_move_string = {"response": "move", "move": player_move, "message": "J'attends ton coup"}
-                    print(response_move_string)
-                    response_move_json = json.dumps(response_move_string)
-                    player.sendall(response_move_json.encode())
-                    print("Coup joué et réponse envoyée au serveur.")
+            try: 
+                player, address = s.accept()
+                with player:
+                    server_request = player.recv(20480).decode()
+                    server_json = json.loads(server_request)
+                    print("Requête du serveur:", server_json)
+                    if server_json["request"] == "ping":
+                        response_pong = {"response": "pong"}
+                        response_pong_json = json.dumps(response_pong)
+                        player.sendall(response_pong_json.encode())
+                        print("Pong envoyé au serveur en réponse à la requête de ping.")
+                    elif server_json["request"] == "play":
+                        lives = server_json["lives"]
+                        state = server_json["state"]
+                        errors = server_json["errors"]
+                        player_move = blocker_mover(server_json)
+                        print(player_move)  
+                        response_move_string = {"response": "move", "move": player_move, "message": "J'attends ton coup"}
+                        print(response_move_string)
+                        response_move_json = json.dumps(response_move_string)
+                        player.sendall(response_move_json.encode())
+                        print("Coup joué et réponse envoyée au serveur.")
+            except Exception as e:
+                print("Exception:", e)
+                break
 
-def random_blocker_move(state):
-    # Check if current player has any blockers left
-    if state['blockers'][state['current']] == 0:
-        return None
 
-    # Calculate opponent's position
-    opponent = (state['current'] + 1) % 2
-    opponent_pos = [(i, j) for i, row in enumerate(state['board']) for j, cell in enumerate(row) if cell == opponent + 1]
 
-    # Generate possible blocker positions
-    blocker_positions = []
-    for pos in opponent_pos:
-        i, j = pos
-        # Add positions in front of the opponent, depending on the direction they're moving
-        if state['current'] == 0:  # Moving down
-            blocker_positions.append([[i+1, j], [i+2, j]])
-        else:  # Moving up
-            blocker_positions.append([[i-1, j], [i-2, j]])
-
-    # Randomly select a blocker position
-    blocker_pos = random.choice(blocker_positions)
-
-    # Return move object
-    return {"type": "blocker", "position": blocker_pos}
 
 # Les données JSON que je dois envoyer
 json_data = {
@@ -179,3 +184,6 @@ server_address = ('localhost', 3000)
 
 send_json_data(json_data, server_address)
 handle_ping_pong()
+
+
+
