@@ -14,21 +14,7 @@ def send_json_data(json_data, server_address):
 # Variable globale pour garder une trace de la direction du joueur
 always_move_down = False
 
-def player_mover(server_json):
-    global always_move_down
-    board = server_json["state"]["board"]
-    position = get_position(server_json)
-    move_available = callfunction(board, position)
 
-    # Si c'est le premier mouvement et que le mouvement vers le haut n'est pas disponible
-    if not always_move_down and not move_available[2]:
-        always_move_down = True
-
-    # Si le joueur doit toujours se déplacer vers le bas ou si le mouvement vers le haut n'est pas disponible
-    if always_move_down or not move_available[2]:
-        return down_move(position)
-    else:
-        return up_move(position)
 
 #block any position
 def blocker_mover(server_json):
@@ -46,96 +32,30 @@ def blocker_mover(server_json):
         "position": random.choice(possible_blocker_positions)
     }
 
+def player_mover(server_json):
+    possible_pawn_positions = []
+    pawn = 0
+    if server_json["state"]["players"][1] == "Niall":
+        pawn = 1
+    for i in range(len(server_json["state"]["board"])):
+        for j in range(len(server_json["state"]["board"][i])):
+            if server_json["state"]["board"][i][j] == pawn:
+                for y in [-2,0,2]:
+                    for x in [-2,0,2]:
+                        if not(x == 0 and y == 0) and x*y == 0:
+                            if 0 <= i+y < len(server_json["state"]["board"]) and 0 <= j+x < len(server_json["state"]["board"][0]):
+                                if server_json["state"]["board"][i+y][j+x] == 2:
+                                    possible_pawn_positions.append([[i+y,j+x]])
+                                elif server_json["state"]["board"][i+y][j+x] == 1-pawn:
+                                    if server_json["state"]["board"][i+2*y][j+2*x] == 2:
+                                        if 0 <= i+2*y < len(server_json["state"]["board"]) and 0 <= j+2*x < len(server_json["state"]["board"][0]):
+                                            possible_pawn_positions.append([[i+2*y,j+2*x]])
+                return {
+                    "type": "pawn",
+                    "position": random.choice(possible_pawn_positions)
+                }
 
 
-def right_move(position):
-
-    return {
-    "type": "pawn", 
-    "position": [[position[0], position[1] + 2]]
-  }
-
-def left_move(position):
-
-    return {
-    "type": "pawn", 
-    "position": [[position[0], position[1] - 2]]
-  }
-    
-def up_move(position):
-
-    return {
-    "type": "pawn", 
-    "position": [[position[0] - 2, position[1]]]
-  }
-    
-def down_move(position):
-
-    return {
-    "type": "pawn", 
-    "position": [[position[0] + 2, position[1]]]
-  }
-
-  
-def get_random_true_index(move_available):
-    true_indices = [i for i, val in enumerate(move_available) if val]  # Obtient les indices des éléments True
-    return random.choice(true_indices)  # Retourne un indice aléatoire parmi les éléments True
-
-def right_available(board, position):
-    if position[1] + 2 > 16 : # Si je suis à la fin de la liste je ne peux pas me déplacer à droite
-        return False
-    listcase = board[position[0]] # Je récupère la liste dans laquelle je me trouve mais dans logique du jeu je regarde le déplacement horizontale 
-    if listcase[position[1]+ 1] == 3 and listcase[position[1]+ 2] == 2: # Si je me déplaces à droite et que c'est un blocker vide et que c'est une case vide 
-        return True
-    else:
-        return False
-    
-def left_available(board, position):
-    if position[1] - 2 < 0 : # Si je suis au début de la liste je ne peux pas me déplacer à gauche
-        return False
-    listcase = board[position[0]] # Je récupère la liste dans laquelle je me trouve mais dans logique du jeu je regarde le déplacement horizontale 
-    if listcase[position[1]- 1] == 3 and listcase[position[1]- 2] == 2: # Si je me déplaces à gauche et que c'est un blocker vide et que c'est une case vide 
-        return True
-    else:
-        return False
-
-def up_available(board, position):
-    if position[0] - 2 < 0 : # Si je suis au début de la liste je ne peux pas me déplacer en haut
-        return False
-    listcase = board[position[0]-2] # Je récupère la liste dans laquelle je me trouve mais dans logique du jeu je regarde le déplacement verticale 
-    listblocker = board[position[0]-1] # La liste où il y'a le blocker
-    if listblocker[position[0]] == 3 and listcase[position[0]] == 2: # Si je me déplaces en haut et que c'est un blocker vide et que c'est une case vide 
-        return True
-    else:
-        return False
-
-def down_available(board, position):
-    if position[0] + 2 > 16 : # Si je suis à la fin de la liste je ne peux pas me déplacer en bas
-        return False
-    listcase = board[position[0]+2] # Je récupère la liste dans laquelle je me trouve mais dans logique du jeu je regarde le déplacement verticale 
-    listblocker = board[position[0]+1] # La liste où il y'a le blocker
-    if listblocker[position[0]] == 3 and listcase[position[0]] == 2: # Si je me déplaces en bas et que c'est un blocker vide et que c'est une case vide 
-        return True
-    else:
-        return False
-      
-def callfunction(board, position):
-    listefunction = []
-    listefunction.append(right_available(board, position))
-    listefunction.append(left_available(board, position))
-    listefunction.append(up_available(board, position))
-    listefunction.append(down_available(board, position))
-    return listefunction
-
-
-def get_position(server_json): # Indique position de où je suis 
-    board = server_json["state"]["board"]
-    joueur = server_json["state"]["current"]
-    
-    for i, elem in enumerate(board):  # Parcourt les 17 listes 
-        if joueur in elem:  # Vérifie si zéro est présent dans la liste
-            pos_in_list = elem.index(joueur)  # Obtient la position de zéro dans la liste
-            return [i, pos_in_list]  # Renvoie le numéro de la liste et la position de zéro dans cette liste
 
 def handle_ping_pong():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -157,8 +77,10 @@ def handle_ping_pong():
                         lives = server_json["lives"]
                         state = server_json["state"]
                         errors = server_json["errors"]
-                        player_move = blocker_mover(server_json)
-                        print(player_move)  
+                        if random.randint(0, 1) == 0:
+                            player_move = player_mover(server_json)
+                        else:
+                            player_move = blocker_mover(server_json)
                         response_move_string = {"response": "move", "move": player_move, "message": "J'attends ton coup"}
                         print(response_move_string)
                         response_move_json = json.dumps(response_move_string)
