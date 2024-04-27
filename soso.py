@@ -11,50 +11,67 @@ def send_json_data(json_data, server_address):
         response = s.recv(20480)
         print("Réponse du serveur:", response.decode())
 
-# Variable globale pour garder une trace de la direction du joueur
-always_move_down = False
 
-
+blocker_count = 0
 
 #block any position
 def blocker_mover(server_json):
+    global blocker_count
+    if blocker_count >= 10:
+        blocker_count = 0  # Reset blocker count after each game
+        return None
     possible_blocker_positions = []
     for i in range(len(server_json["state"]["board"])):
-        for j in range(len(server_json["state"]["board"][i])):
-            if server_json["state"]["board"][i][j] == 3:
-                if j%2 == 0 and j>1:
-                    possible_blocker_positions.append( [[i,j],[i,j-2]])
-                elif j%2 == 1 and i>1:
-                    possible_blocker_positions.append( [[i,j],[i-2,j]])
-                 
+        for i in range(len(server_json["state"]["board"])):
+            for j in range(len(server_json["state"]["board"][i])):
+                if server_json["state"]["board"][i][j] == 3:
+                    if j%2 == 0 and j>1:
+                        if [i,j] not in [pos[0] for pos in possible_blocker_positions] and [i,j-2] not in [pos[1] for pos in possible_blocker_positions]:
+                            possible_blocker_positions.append([[i,j],[i,j-2]])
+                    elif j%2 == 1 and i>1:
+                        if [i,j] not in [pos[0] for pos in possible_blocker_positions] and [i-2,j] not in [pos[1] for pos in possible_blocker_positions]:
+                            possible_blocker_positions.append([[i,j],[i-2,j]])
+
+
+    blocker_count +=1   
     return {
         "type": "blocker",
         "position": random.choice(possible_blocker_positions)
     }
 
+def get_position(server_json): 
+    board = server_json["state"]["board"]
+    joueur = server_json["state"]["current"]
+
+    for i, elem in enumerate(board):  
+        if joueur in elem:  
+            pos_in_list = elem.index(joueur)  
+            return [i, pos_in_list]  
+        
 def player_mover(server_json):
     possible_pawn_positions = []
     pawn = 0
     if server_json["state"]["players"][1] == "Niall":
         pawn = 1
-    for i in range(len(server_json["state"]["board"])):
-        for j in range(len(server_json["state"]["board"][i])):
-            if server_json["state"]["board"][i][j] == pawn:
-                for y in [-2,0,2]:
-                    for x in [-2,0,2]:
-                        if not(x == 0 and y == 0) and x*y == 0:
-                            if 0 <= i+y < len(server_json["state"]["board"]) and 0 <= j+x < len(server_json["state"]["board"][0]):
-                                if server_json["state"]["board"][i+y][j+x] == 2:
-                                    possible_pawn_positions.append([[i+y,j+x]])
-                                elif server_json["state"]["board"][i+y][j+x] == 1-pawn:
-                                    if server_json["state"]["board"][i+2*y][j+2*x] == 2:
-                                        if 0 <= i+2*y < len(server_json["state"]["board"]) and 0 <= j+2*x < len(server_json["state"]["board"][0]):
-                                            possible_pawn_positions.append([[i+2*y,j+2*x]])
-                return {
-                    "type": "pawn",
-                    "position": random.choice(possible_pawn_positions)
-                }
 
+    # Avoir la position du joueur
+    i, j = get_position(server_json)
+
+    for y in [-2,0,2]:
+        for x in [-2,0,2]:
+            if not(x == 0 and y == 0) and x*y == 0:
+                if 0 <= i+y < len(server_json["state"]["board"]) and 0 <= j+x < len(server_json["state"]["board"][0]):
+                    if server_json["state"]["board"][i+y][j+x] == 2:
+                        possible_pawn_positions.append([[i+y,j+x]])
+                    elif server_json["state"]["board"][i+y][j+x] == 1-pawn:
+                        if server_json["state"]["board"][i+2*y][j+2*x] == 2:
+                            if 0 <= i+2*y < len(server_json["state"]["board"]) and 0 <= j+2*x < len(server_json["state"]["board"][0]):
+                                if server_json["state"]["board"][i+y][j+x] != 3:
+                                    possible_pawn_positions.append([[i+2*y,j+2*x]])
+    return {
+        "type": "pawn",
+        "position": random.choice(possible_pawn_positions)
+    }
 
 
 def handle_ping_pong():
@@ -81,6 +98,8 @@ def handle_ping_pong():
                             player_move = player_mover(server_json)
                         else:
                             player_move = blocker_mover(server_json)
+                        if player_move is None:
+                            player_move = player_mover(server_json)
                         response_move_string = {"response": "move", "move": player_move, "message": "J'attends ton coup"}
                         print(response_move_string)
                         response_move_json = json.dumps(response_move_string)
