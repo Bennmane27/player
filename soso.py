@@ -22,16 +22,16 @@ def blocker_mover(server_json):
         return None
     possible_blocker_positions = []
     for i in range(len(server_json["state"]["board"])):
-        for i in range(len(server_json["state"]["board"])):
-            for j in range(len(server_json["state"]["board"][i])):
-                if server_json["state"]["board"][i][j] == 3:
-                    if j%2 == 0 and j>1:
+        for j in range(len(server_json["state"]["board"][i])):
+            if server_json["state"]["board"][i][j] == 3:
+                if j%2 == 0 and j>1:
+                    if server_json["state"]["board"][i][j-1] != 4:  # Check if there is already a blocker in the position
                         if [i,j] not in [pos[0] for pos in possible_blocker_positions] and [i,j-2] not in [pos[1] for pos in possible_blocker_positions]:
                             possible_blocker_positions.append([[i,j],[i,j-2]])
-                    elif j%2 == 1 and i>1:
+                elif j%2 == 1 and i>1:
+                    if server_json["state"]["board"][i-1][j] != 4:  # Check if there is already a blocker in the position
                         if [i,j] not in [pos[0] for pos in possible_blocker_positions] and [i-2,j] not in [pos[1] for pos in possible_blocker_positions]:
                             possible_blocker_positions.append([[i,j],[i-2,j]])
-
 
     blocker_count +=1   
     return {
@@ -62,11 +62,12 @@ def player_mover(server_json):
             if not(x == 0 and y == 0) and x*y == 0:
                 if 0 <= i+y < len(server_json["state"]["board"]) and 0 <= j+x < len(server_json["state"]["board"][0]):
                     if server_json["state"]["board"][i+y][j+x] == 2:
-                        possible_pawn_positions.append([[i+y,j+x]])
+                        if server_json["state"]["board"][i+y//2][j+x//2] != 4:  # Check if there is a wall between the player and the target position
+                            possible_pawn_positions.append([[i+y,j+x]])
                     elif server_json["state"]["board"][i+y][j+x] == 1-pawn:
                         if server_json["state"]["board"][i+2*y][j+2*x] == 2:
                             if 0 <= i+2*y < len(server_json["state"]["board"]) and 0 <= j+2*x < len(server_json["state"]["board"][0]):
-                                if server_json["state"]["board"][i+y][j+x] != 3:
+                                if server_json["state"]["board"][i+y][j+x] != 4:  # Check if there is a wall between the player and the target position
                                     possible_pawn_positions.append([[i+2*y,j+2*x]])
     return {
         "type": "pawn",
