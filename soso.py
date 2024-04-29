@@ -89,9 +89,10 @@ def player_mover(server_json):
                 if 0 <= i+y < len(server_json["state"]["board"]) and 0 <= j+x < len(server_json["state"]["board"][0]):
                     if server_json["state"]["board"][i+y][j+x] == 2 and server_json["state"]["board"][i+y//2][j+x//2] != 4:
                         possible_pawn_positions.append([[i+y, j+x]])
-                    elif server_json["state"]["board"][i+y][j+x] == 1-pawn and server_json["state"]["board"][i+2*y][j+2*x] == 2:
-                        if 0 <= i+2*y < len(server_json["state"]["board"]) and 0 <= j+2*x < len(server_json["state"]["board"][0]) and server_json["state"]["board"][i+y][j+x] != 4:
-                            possible_pawn_positions.append([[i+2*y, j+2*x]])
+                    elif server_json["state"]["board"][i+y][j+x] == 1-pawn and server_json["state"]["board"][i+2*y][j+2*x] == 2 :
+                        if 0 <= i+2*y < len(server_json["state"]["board"]) and 0 <= j+2*x < len(server_json["state"]["board"][0]):
+                            if server_json["state"]["board"][i+y//2][j+x//2] != 4 and server_json["state"]["board"][i+3*y//2][j+3*x//2] != 4:
+                                possible_pawn_positions.append([[i+2*y, j+2*x]])
 
     return {
         "type": "pawn",
@@ -115,13 +116,15 @@ def handle_ping_pong():
                     player.sendall(response_pong_json.encode())
                     print("Pong envoyé au serveur en réponse à la requête de ping.")
                 elif server_json["request"] == "play":
+                    pawn = int("Niall"==server_json["state"]["players"][1])
                     get_blockers_used(server_json["state"]["board"])
-                    if random.randint(0, 1) == 0:
-                        player_move = player_mover(server_json)
+                    if server_json["state"]["blockers"][pawn] != 0:
+                        if random.randint(0, 1) == 0 :
+                            player_move = player_mover(server_json)
+                        else:
+                            player_move = blocker_mover(server_json)
                     else:
-                        player_move = blocker_mover(server_json)
-                    if player_move is None:
-                        player_move = player_mover(server_json)
+                            player_move = player_mover(server_json)
                     response_move_string = {"response": "move", "move": player_move, "message": "J'attends ton coup"}
                     print(response_move_string)
                     response_move_json = json.dumps(response_move_string)
