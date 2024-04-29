@@ -3,15 +3,20 @@ import json
 import random
 
 def send_json_data(json_data, server_address):
+    # On crée un socket pour la communication réseau
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        # On se connecte à l'adresse du serveur spécifiée
         s.connect(server_address)
+        # On convertit les données JSON en une chaîne de caractères
         json_string = json.dumps(json_data)
+        # On envoie la chaîne de caractères au serveur
         s.sendall(json_string.encode())
+        # On affiche un message indiquant que les données ont été envoyées avec succès
         print("Données JSON envoyées au serveur avec succès.")
+        # On reçoit la réponse du serveur
         response = s.recv(20480)
+        # On affiche la réponse du serveur
         print("Réponse du serveur:", response.decode())
-
-
 
 
 
