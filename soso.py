@@ -139,6 +139,8 @@ def get_position(server_json):
         
 
 def player_mover(server_json):
+    
+    board = server_json["state"]["board"]
     # On initialise une liste vide pour stocker les positions possibles du pion
     possible_pawn_positions = []
     # On initialise une variable pour stocker le numéro du pion
@@ -156,7 +158,7 @@ def player_mover(server_json):
             # On vérifie si la direction est valide (pas de mouvement en diagonale et pas de mouvement sur place)
             if not(x == 0 and y == 0) and x*y == 0:
                 # On vérifie si la nouvelle position est dans les limites du plateau de jeu
-                if 0 <= i+y < len(server_json["state"]["board"]) and 0 <= j+x < len(server_json["state"]["board"][0]):
+                if 0 <= i+y < len(board) and 0 <= j+x < len(board[0]):
                     # Si la nouvelle position est libre et qu'il n'y a pas de bloqueur sur le chemin
                     if server_json["state"]["board"][i+y][j+x] == 2 and server_json["state"]["board"][i+y//2][j+x//2] != 4:
                         # On ajoute la nouvelle position à la liste des positions possibles
