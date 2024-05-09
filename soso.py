@@ -8,7 +8,6 @@ API_MODEL_NAME = "sheets"
 API_VERSION = "v4"
 
 
-
 def send_json_data(json_data, server_address):
     # On crée un socket pour la communication réseau
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
