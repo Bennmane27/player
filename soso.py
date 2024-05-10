@@ -160,15 +160,15 @@ def player_mover(server_json):
                 # On vérifie si la nouvelle position est dans les limites du plateau de jeu
                 if 0 <= i+y < len(board) and 0 <= j+x < len(board[0]):
                     # Si la nouvelle position est libre et qu'il n'y a pas de bloqueur sur le chemin
-                    if server_json["state"]["board"][i+y][j+x] == 2 and server_json["state"]["board"][i+y//2][j+x//2] != 4:
+                    if board[i+y][j+x] == 2 and board[i+y//2][j+x//2] != 4:
                         # On ajoute la nouvelle position à la liste des positions possibles
                         possible_pawn_positions.append([[i+y, j+x]])
                     # Si la nouvelle position est occupée par le pion adverse et que la case derrière est libre
-                    elif server_json["state"]["board"][i+y][j+x] == 1-pawn and server_json["state"]["board"][i+2*y][j+2*x] == 2 :
+                    elif board[i+y][j+x] == 1-pawn and board[i+2*y][j+2*x] == 2 :
                         # On vérifie si la case derrière est dans les limites du plateau de jeu
-                        if 0 <= i+2*y < len(server_json["state"]["board"]) and 0 <= j+2*x < len(server_json["state"]["board"][0]):
+                        if 0 <= i+2*y < len(board) and 0 <= j+2*x < len(board[0]):
                             # Si il n'y a pas de bloqueur sur le chemin
-                            if server_json["state"]["board"][i+y//2][j+x//2] != 4 and server_json["state"]["board"][i+3*y//2][j+3*x//2] != 4:
+                            if board[i+y//2][j+x//2] != 4 and board[i+3*y//2][j+3*x//2] != 4:
                                 # On ajoute la case derrière à la liste des positions possibles
                                 possible_pawn_positions.append([[i+2*y, j+2*x]])
                                 
